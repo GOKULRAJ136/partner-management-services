@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import io.mosip.pms.partner.manager.exception.PartnerManagerServiceException;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -445,8 +446,16 @@ public class PartnerServiceImpl implements PartnerService {
 		return true;
 	}
 
+	public String getUser() {
+		return UserDetailUtil.getLoggedInUser();
+	}
+
 	@Override
 	public RetrievePartnerDetailsResponse getPartnerDetails(String partnerId) {
+		if(!getUser().equals(partnerId)) {
+			throw new PartnerManagerServiceException(io.mosip.pms.partner.manager.constant.ErrorCode.LOGGEDIN_USER_NOT_AUTHORIZED.getErrorCode(),
+					io.mosip.pms.partner.manager.constant.ErrorCode.LOGGEDIN_USER_NOT_AUTHORIZED.getErrorMessage());
+		}
 		RetrievePartnerDetailsResponse response = new RetrievePartnerDetailsResponse();
 		Partner partner = getValidPartner(partnerId, true);
 		response.setPartnerID(partner.getId());
