@@ -1,21 +1,20 @@
 package io.mosip.pms.partner.controller;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
+import io.mosip.pms.partner.constant.PartnerConstants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -59,6 +58,7 @@ import io.mosip.pms.partner.response.dto.PartnerCredentialTypePolicyDto;
 import io.mosip.pms.partner.response.dto.PartnerResponse;
 import io.mosip.pms.partner.response.dto.PartnerSearchResponseDto;
 import io.mosip.pms.partner.response.dto.RetrievePartnerDetailsResponse;
+import io.mosip.pms.partner.response.dto.OriginalCertDownloadResponseDto;
 import io.mosip.pms.partner.service.PartnerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiParam;
@@ -80,6 +80,11 @@ public class PartnerServiceController {
 	
 	@Autowired
 	AuditUtil auditUtil;
+
+	@Value("${mosip.pms.api.id.original.partner.certificate.get}")
+	private String getOriginalPartnerCertificateId;
+
+	public static final String VERSION = "1.0";
 	
 	/**
 	 * This API would be used for self registration by partner to create Auth/E-KYC
@@ -349,7 +354,24 @@ public class PartnerServiceController {
 		requestDto.setPartnerId(partnerId);
 		response.setResponse(partnerService.getPartnerCertificate(requestDto));
 		return response;
-    }	
+    }
+
+	@PreAuthorize("hasAnyRole(@authorizedRoles.getGetpartnerscertificate())")
+	@RequestMapping(value = "/{partnerId}/originalPartnerCertificate", method = RequestMethod.GET)
+	@Operation(summary = "Service to get original partner certificate", description = "Service to get original partner certificate")
+	public ResponseWrapper<OriginalCertDownloadResponseDto> getOriginalPartnerCertificate(
+			@ApiParam("To download original partner certificate.")  @PathVariable("partnerId") @NotNull String partnerId) throws JsonParseException, JsonMappingException, JsonProcessingException, IOException, CertificateException {
+		ResponseWrapper<OriginalCertDownloadResponseDto> response = new ResponseWrapper<>();
+		response.setId(getOriginalPartnerCertificateId);
+		response.setVersion(VERSION);
+		PartnerCertDownloadRequestDto requestDto = new PartnerCertDownloadRequestDto();
+		requestDto.setPartnerId(partnerId);
+		response.setId("mosip.pms.api.id.getOriginalPartnerCertificate");
+		response.setVersion("1.0");
+		response.setResponse(partnerService.getOriginalPartnerCertificate(requestDto));
+		response.setResponsetime(LocalDateTime.now());
+		return response;
+	}
 	
 	@ResponseFilter
 	@PostMapping("/search")

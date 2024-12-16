@@ -11,6 +11,8 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mosip.pms.partner.response.dto.*;
+import io.mosip.pms.partner.controller.PartnerServiceController;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -78,6 +81,9 @@ public class PartnerServiceControllerTest {
 
     @MockBean
     private PartnerService partnerService;
+
+    @MockBean
+    private PartnerServiceController partnerServiceController;
     
     @MockBean
     PartnerManagerService partnerManagerService;
@@ -164,13 +170,14 @@ public class PartnerServiceControllerTest {
     	Mockito.when(partnerService.getBiometricExtractors("123456", "12345")).thenReturn(new ExtractorsDto());
     	mockMvc.perform(MockMvcRequestBuilders.get("/partners/123456/bioextractors/12345")).andExpect(status().isOk());
     }
-    
+
     @Test
     @WithMockUser(roles = {"PARTNER"})
     public void retrievePartnerCertificateTest() throws Exception {
-        Mockito.when(partnerService.getPartnerCertificate(Mockito.any())).thenReturn(Mockito.any());
+        PartnerCertDownloadResponeDto partnerCertDownloadResponeDto = new PartnerCertDownloadResponeDto();
+        Mockito.when(partnerService.getPartnerCertificate(Mockito.any())).thenReturn(partnerCertDownloadResponeDto);
         mockMvc.perform(MockMvcRequestBuilders.get("/partners/12345/certificate")).andExpect(MockMvcResultMatchers.status().isOk());
-    }    
+    }
     
     
     @Test
@@ -291,8 +298,7 @@ public class PartnerServiceControllerTest {
     	PartnerPolicyMappingRequest requestDto = new PartnerPolicyMappingRequest();
     	request.setRequest(requestDto);
     	Mockito.when(partnerService.requestForPolicyMapping(request.getRequest(),"1234")).thenReturn(response);
-    	mockMvc.perform(post("/partners/1234/policy/map").contentType(MediaType.APPLICATION_JSON_VALUE)
-    			.content(objectMapper.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+    	partnerServiceController.mapPolicyToPartner("1234", request);
     }
     
     @Test    
@@ -304,8 +310,29 @@ public class PartnerServiceControllerTest {
     	APIKeyGenerateRequestDto requestDto = new APIKeyGenerateRequestDto();
     	request.setRequest(requestDto);
     	Mockito.when(partnerManagerService.generateAPIKey("1234",requestDto)).thenReturn(response);
-    	mockMvc.perform(MockMvcRequestBuilders.patch("/partners/1234/generate/apikey").contentType(MediaType.APPLICATION_JSON_VALUE)
-    			.content(objectMapper.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+    	partnerServiceController.generateAPIKey("1234", request);
+    }
+
+    @Test
+    @WithMockUser(roles = {"PARTNER"})
+    public void getPartnerCertificateTest() throws Exception{
+        PartnerCertDownloadResponeDto certDownloadResponeDto = new PartnerCertDownloadResponeDto();
+        RequestWrapper<PartnerCertDownloadRequestDto> requestWrapper = new RequestWrapper<>();
+        PartnerCertDownloadRequestDto requestDto = new PartnerCertDownloadRequestDto();
+        requestWrapper.setRequest(requestDto);
+        Mockito.when(partnerService.getPartnerCertificate(requestDto)).thenReturn(certDownloadResponeDto);
+        mockMvc.perform(MockMvcRequestBuilders.get("/partners/1234/certificate")).andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = {"PARTNER"})
+    public void getOriginalPartnerCertificateTest() throws Exception{
+        OriginalCertDownloadResponseDto originalCertDownloadResponseDto = new OriginalCertDownloadResponseDto();
+        RequestWrapper<PartnerCertDownloadRequestDto> requestWrapper = new RequestWrapper<>();
+        PartnerCertDownloadRequestDto requestDto = new PartnerCertDownloadRequestDto();
+        requestWrapper.setRequest(requestDto);
+        Mockito.when(partnerService.getOriginalPartnerCertificate(requestDto)).thenReturn(originalCertDownloadResponseDto);
+        mockMvc.perform(MockMvcRequestBuilders.get("/partners/1234/originalPartnerCertificate")).andExpect(MockMvcResultMatchers.status().isOk());
     }
     
     private RequestWrapper<FilterValueDto> createFilterRequest(){

@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -674,6 +674,25 @@ public class PartnerManagementServiceImpl implements PartnerManagerService {
 			auditUtil.setAuditRequestDto(PartnerManageEnum.ACTIVATE_DEACTIVATE_API_PARTNERS_FAILED, partnerId, "partnerId");
 			throw new PartnerManagerServiceException(ErrorCode.PARTNER_POLICY_LABEL_NOT_EXISTS.getErrorCode(),
 					ErrorCode.PARTNER_POLICY_LABEL_NOT_EXISTS.getErrorMessage());
+		}
+		/*
+		// check if Partner is Active or not
+		if (policyByLabel.getPartner() != null && !policyByLabel.getPartner().getIsActive()) {
+			LOGGER.error("Partner is not Active, hence status of API key cannot be updated, for partner: " + partnerId);
+			auditUtil.setAuditRequestDto(PartnerManageEnum.ACTIVATE_DEACTIVATE_API_PARTNERS_FAILED, partnerId,
+					"partnerId");
+			throw new PartnerManagerServiceException(ErrorCode.PARTNER_NOT_ACTIVE_EXCEPTION.getErrorCode(),
+					ErrorCode.PARTNER_NOT_ACTIVE_EXCEPTION.getErrorMessage());
+		}
+		*/
+		// check if API key has been already deactivated
+		if (!policyByLabel.getIsActive() && request.getStatus().equalsIgnoreCase(PartnerConstants.DEACTIVE)) {
+			LOGGER.error(
+					"API key is already deactivated hence it cannot be deactivated again, for partner: " + partnerId);
+			auditUtil.setAuditRequestDto(PartnerManageEnum.ACTIVATE_DEACTIVATE_API_PARTNERS_FAILED, partnerId,
+					"partnerId");
+			throw new PartnerManagerServiceException(ErrorCode.PARTNER_APIKEY_NOT_ACTIVE_EXCEPTION.getErrorCode(),
+					ErrorCode.PARTNER_APIKEY_NOT_ACTIVE_EXCEPTION.getErrorMessage());
 		}
 		policyByLabel.setUpdBy(getUser());
 		policyByLabel.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now()));		
